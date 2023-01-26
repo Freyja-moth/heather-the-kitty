@@ -26,3 +26,7 @@ Each command has a chance for Heather to: ignore you, bite you or knock somethin
 
 ## Thoughts of cat
 I also have logging setup
+
+# Todo
+ - [ ] Add build scripts
+ - [ ] Add commands to allow each server to change probabilities
