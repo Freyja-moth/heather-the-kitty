@@ -23,3 +23,6 @@ Gives heather cuddles
 Tosses a yarn ball for Heather to play with
 
 Each command has a chance for Heather to: ignore you, bite you or knock something over 
+
+## Thoughts of cat
+I also have logging setup
