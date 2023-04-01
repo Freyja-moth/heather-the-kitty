@@ -1,8 +1,8 @@
+use crate::error::CatResult;
+use serde::{Deserialize, Serialize};
 use std::fs;
 
-use serde::{Deserialize, Serialize};
-
-use crate::error::CatResult;
+const CONFIG_PATH: &str = "Config.toml";
 
 #[derive(Deserialize, Serialize)]
 pub struct Config {
@@ -10,7 +10,7 @@ pub struct Config {
 }
 impl Config {
     pub fn read_config() -> CatResult<Self> {
-        let file = fs::read_to_string("./Config.toml")?;
+        let file = fs::read_to_string(CONFIG_PATH)?;
         Ok(toml::from_str(&file)?)
     }
 }
