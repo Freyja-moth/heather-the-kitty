@@ -4,8 +4,10 @@ use std::path::Path;
 use rand::{distributions::Standard, prelude::Distribution, random};
 use serenity::{
     async_trait,
-    http::AttachmentType,
-    model::prelude::{Message, Ready},
+    model::{
+        channel::AttachmentType,
+        prelude::{Message, Ready},
+    },
     prelude::{Context, EventHandler},
 };
 
