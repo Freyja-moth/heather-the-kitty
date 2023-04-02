@@ -1,3 +1,5 @@
+mod commands;
+
 use log::{error, info};
 use std::path::Path;
 
@@ -6,7 +8,7 @@ use serenity::{
     async_trait,
     model::{
         channel::AttachmentType,
-        prelude::{Message, Ready},
+        prelude::{command::Command, interaction::Interaction, GuildId, Message, Ready},
     },
     prelude::{Context, EventHandler},
 };
@@ -17,44 +19,68 @@ pub struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, _: Context, ready: Ready) {
-        info!("{} is connected", ready.user.name);
+    async fn ready(&self, ctx: Context, ready: Ready) {
+        let commands = register_commands(ctx).await;
+        info!(
+            "{} is connected with commands {commands:#?}",
+            ready.user.name
+        );
     }
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.author.bot {
             return;
         }
         if let Err(why) = match random() {
-            ResponseType::Nothing => self.nothing().await,
-            ResponseType::Sound => self.sound(ctx, msg).await,
-            ResponseType::Image => self.image(ctx, msg).await,
+            ResponseType::Nothing => nothing(),
+            ResponseType::Sound => sound(ctx, msg).await,
+            ResponseType::Image => image(ctx, msg).await,
         } {
             error!("Couldn't respond {why}");
         }
     }
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        if let Interaction::ApplicationCommand(command) = interaction {
+            if let Err(why) = match command.data.name.as_str() {
+                "pet" => commands::pet::run(ctx, command).await,
+                "cuddle" => commands::cuddle::run(ctx, command).await,
+                _ => commands::error::run(ctx, command).await,
+            } {
+                error!("Cannot create response: {why:?}");
+            }
+        }
+    }
 }
 
-impl Handler {
-    async fn sound(&self, ctx: Context, msg: Message) -> CatResult<()> {
-        info!("Meowed at someone!");
-        let sound: Sound = random();
-        msg.channel_id
-            .send_message(&ctx.http, |message| message.content(sound))
-            .await?;
-        Ok(())
-    }
-    async fn image(&self, ctx: Context, msg: Message) -> CatResult<()> {
-        info!("Sent someone an image");
-        let image: Image = random();
-        msg.channel_id
-            .send_message(&ctx.http, |message| message.add_file(image))
-            .await?;
-        Ok(())
-    }
-    async fn nothing(&self) -> CatResult<()> {
-        info!("Someone tried to talk to me... but I ignored them");
-        Ok(())
-    }
+async fn sound(ctx: Context, msg: Message) -> CatResult<()> {
+    info!("Meowed at someone!");
+    let sound: Sound = random();
+    msg.channel_id
+        .send_message(&ctx.http, |message| message.content(sound))
+        .await?;
+    Ok(())
+}
+async fn image(ctx: Context, msg: Message) -> CatResult<()> {
+    info!("Sent someone an image");
+    let image: Image = random();
+    msg.channel_id
+        .send_message(&ctx.http, |message| message.add_file(image))
+        .await?;
+    Ok(())
+}
+fn nothing() -> CatResult<()> {
+    info!("Someone tried to talk to me... but I ignored them");
+    Ok(())
+}
+async fn register_commands(ctx: Context) -> CatResult<Vec<Command>> {
+    let guild_id = GuildId(985827699853492274);
+
+    Ok(guild_id
+        .set_application_commands(&ctx.http, |commands| {
+            commands
+                .create_application_command(commands::pet::register)
+                .create_application_command(commands::cuddle::register)
+        })
+        .await?)
 }
 
 enum ResponseType {

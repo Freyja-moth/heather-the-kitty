@@ -1,11 +1,10 @@
-mod commands;
+//mod commands;
 mod config;
 mod error;
 mod events;
 
-use crate::commands::Commands;
-use crate::config::Config;
-use crate::error::CatResult;
+use config::Config;
+use error::CatResult;
 
 use events::Handler;
 use log::info;
@@ -21,7 +20,7 @@ async fn main() -> CatResult<()> {
 
     let mut client = Client::builder(&config.token, intents)
         .event_handler(Handler)
-        .event_handler(Commands)
+        //.event_handler(Commands)
         .await?;
 
     client.start().await?;
