@@ -20,11 +20,14 @@ pub struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        let commands = register_commands(ctx).await;
-        info!(
-            "{} is connected with commands {commands:#?}",
-            ready.user.name
-        );
+        info!("{} is connected", ready.user.name);
+        match register_commands(ctx).await {
+            Err(why) => error!("{why:?}"),
+            Ok(commands) => commands
+                .iter()
+                .map(|command| command.name.as_str())
+                .for_each(|command| info!("Created command: {command}")),
+        }
     }
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.author.bot {
