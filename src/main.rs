@@ -1,27 +1,43 @@
-//mod commands;
-mod config;
 mod error;
 mod events;
 
-use config::Config;
 use error::CatResult;
+use events::Events;
+use serenity::{
+    prelude::{GatewayIntents, TypeMapKey},
+    Client,
+};
+use sqlx::{mysql::MySqlPoolOptions, MySqlPool};
+use std::sync::Arc;
 
-use events::Handler;
-use log::info;
-use serenity::{prelude::GatewayIntents, Client};
+struct Database;
+
+impl TypeMapKey for Database {
+    type Value = Arc<MySqlPool>;
+}
+
+const TOKEN: &str = "MTAyOTk4NDE3Njk3NzQ5ODEzMg.GfanEg.GQJvy8yUiX1E60OlFe4z7KiLtERDlNrPp1RTmk";
 
 #[tokio::main]
 async fn main() -> CatResult<()> {
     env_logger::init();
 
-    let config = Config::read_config()?;
     let intents = GatewayIntents::all();
-    info!("Loaded config!");
 
-    let mut client = Client::builder(&config.token, intents)
-        .event_handler(Handler)
-        //.event_handler(Commands)
+    let mut client = Client::builder(&TOKEN, intents)
+        .event_handler(Events)
         .await?;
+
+    {
+        let pool = MySqlPoolOptions::new()
+            .max_connections(5)
+            .connect("mariadb://freyja-moth:Transbian but gayer@freyja-laptop/heather")
+            .await?;
+
+        let mut data = client.data.write().await;
+
+        data.insert::<Database>(Arc::new(pool));
+    }
 
     client.start().await?;
 
