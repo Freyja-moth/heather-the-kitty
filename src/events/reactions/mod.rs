@@ -48,8 +48,8 @@ enum Reaction {
 impl Distribution<Reaction> for Standard {
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> Reaction {
         match rng.gen_range(0..=128) {
-            1..=32 => Reaction::Sound(random::<Sound>()),
-            33..=64 => Reaction::Image(random::<Image>()),
+            1..=10 => Reaction::Sound(random::<Sound>()),
+            11..=14 => Reaction::Image(random::<Image>()),
             _ => Reaction::None,
         }
     }
