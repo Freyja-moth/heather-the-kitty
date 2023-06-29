@@ -8,7 +8,7 @@ use serenity::{
     Client,
 };
 use sqlx::{mysql::MySqlPoolOptions, MySqlPool};
-use std::sync::Arc;
+use std::{env::var, sync::Arc};
 
 struct Database;
 
@@ -18,10 +18,12 @@ impl TypeMapKey for Database {
 
 #[tokio::main]
 async fn main() -> CatResult<()> {
+    let token = var("TOKEN").expect("Enviroment variable TOKEN must be set");
+    let db_url = var("DATABASE_URL").expect("Enviroment variable DATABASE_URL must be set");
+
     env_logger::init();
 
     let intents = GatewayIntents::all();
-    let token = env!("TOKEN");
 
     let mut client = Client::builder(token, intents)
         .event_handler(Events)
@@ -30,7 +32,7 @@ async fn main() -> CatResult<()> {
     {
         let pool = MySqlPoolOptions::new()
             .max_connections(5)
-            .connect("mariadb://freyja-moth:Transbian but gayer@freyja-desktop/heather")
+            .connect(db_url.as_str())
             .await?;
 
         let mut data = client.data.write().await;
