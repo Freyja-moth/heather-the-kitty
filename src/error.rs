@@ -5,11 +5,11 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum CatError {
     #[error("Io Error")]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
     #[error("Serenity Error")]
-    SerenityError(#[from] serenity::Error),
+    Serenity(#[from] serenity::Error),
     #[error("Sqlx")]
-    SqlxError(#[from] sqlx::Error),
+    Sqlx(#[from] sqlx::Error),
 }
 
 pub type CatResult<T> = Result<T, CatError>;

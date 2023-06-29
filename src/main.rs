@@ -16,22 +16,21 @@ impl TypeMapKey for Database {
     type Value = Arc<MySqlPool>;
 }
 
-const TOKEN: &str = "MTAyOTk4NDE3Njk3NzQ5ODEzMg.GfanEg.GQJvy8yUiX1E60OlFe4z7KiLtERDlNrPp1RTmk";
-
 #[tokio::main]
 async fn main() -> CatResult<()> {
     env_logger::init();
 
     let intents = GatewayIntents::all();
+    let token = env!("TOKEN");
 
-    let mut client = Client::builder(&TOKEN, intents)
+    let mut client = Client::builder(&token, intents)
         .event_handler(Events)
         .await?;
 
     {
         let pool = MySqlPoolOptions::new()
             .max_connections(5)
-            .connect("mariadb://freyja-moth:Transbian but gayer@freyja-laptop/heather")
+            .connect("mariadb://freyja-moth:Transbian but gayer@freyja-desktop/heather")
             .await?;
 
         let mut data = client.data.write().await;

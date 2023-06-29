@@ -4,8 +4,10 @@ use serenity::{
     builder::CreateApplicationCommand,
     model::{
         prelude::{
-            application::interaction::application_command::ApplicationCommandInteraction,
-            command::CommandOptionType, interaction::application_command::CommandDataOptionValue,
+            command::CommandOptionType,
+            interaction::application_command::{
+                ApplicationCommandInteraction, CommandDataOptionValue,
+            },
             PartialChannel,
         },
         Permissions,
@@ -19,17 +21,17 @@ use crate::events::get_database;
 use super::response::Response;
 
 #[derive(Debug)]
-pub enum IgnoreError {
+pub enum FocusError {
     CannotAddToDatabase,
     CannotFindChannel,
     ChannelAlreadyIgnored,
 }
-impl ToString for IgnoreError {
+impl ToString for FocusError {
     fn to_string(&self) -> String {
         format!("{:?}", self)
     }
 }
-impl From<SqlxError> for IgnoreError {
+impl From<SqlxError> for FocusError {
     fn from(value: SqlxError) -> Self {
         match value {
             SqlxError::Database(database) if database.code() == Some(Cow::from("23000")) => {
@@ -40,23 +42,23 @@ impl From<SqlxError> for IgnoreError {
     }
 }
 
-pub struct AddedChannel(PartialChannel);
+pub struct RemovedChannel(PartialChannel);
 
-impl ToString for AddedChannel {
+impl ToString for RemovedChannel {
     fn to_string(&self) -> String {
         self.0.name.clone().unwrap()
     }
 }
 
-type IgnoreResult<T> = Result<T, IgnoreError>;
+type FocusResult<T> = Result<T, FocusError>;
 
-async fn add_to_db(ctx: &Context, channel: &PartialChannel) -> IgnoreResult<()> {
+async fn add_to_db(ctx: &Context, channel: &PartialChannel) -> FocusResult<()> {
     let pool = get_database(ctx).await;
 
     let channel_id = channel.id.to_string();
 
     sqlx::query!(
-        "INSERT INTO ignore_channels(channel_id) VALUES(?)",
+        "DELETE FROM ignore_channels WHERE channel_id = ?",
         channel_id
     )
     .execute(&*pool)
@@ -66,23 +68,23 @@ async fn add_to_db(ctx: &Context, channel: &PartialChannel) -> IgnoreResult<()> 
 }
 
 pub async fn run(command: ApplicationCommandInteraction, ctx: &Context) {
-    let response: IgnoreResult<AddedChannel> = async {
+    let response: FocusResult<RemovedChannel> = async {
         let channel = command
             .data
             .options
             .first()
-            .ok_or(IgnoreError::CannotFindChannel)
+            .ok_or(FocusError::CannotFindChannel)
             .and_then(|data| {
                 if let Some(CommandDataOptionValue::Channel(channel)) = data.resolved.clone() {
                     Ok(channel)
                 } else {
-                    Err(IgnoreError::CannotFindChannel)
+                    Err(FocusError::CannotFindChannel)
                 }
             })?;
 
         add_to_db(ctx, &channel).await?;
 
-        Ok(AddedChannel(channel))
+        Ok(RemovedChannel(channel))
     }
     .await;
 
@@ -91,12 +93,12 @@ pub async fn run(command: ApplicationCommandInteraction, ctx: &Context) {
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
-        .name("ignore")
-        .description("Ignores a specific channel")
+        .name("focus")
+        .description("Unignores a specific channel")
         .create_option(|option| {
             option
                 .name("channel")
-                .description("The channel to be ignored")
+                .description("The channel to be unignored")
                 .kind(CommandOptionType::Channel)
                 .required(true)
         })
