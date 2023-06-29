@@ -23,7 +23,7 @@ async fn main() -> CatResult<()> {
 
     env_logger::init();
 
-    let intents = GatewayIntents::all();
+    let intents = GatewayIntents::non_privileged();
 
     let mut client = Client::builder(token, intents)
         .event_handler(Events)
