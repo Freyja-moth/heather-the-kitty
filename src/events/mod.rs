@@ -7,7 +7,10 @@ use log::{error, info};
 use serenity::{
     async_trait,
     builder::CreateApplicationCommands,
-    model::prelude::{interaction::Interaction, GuildId, Message, Ready},
+    model::{
+        prelude::{interaction::Interaction, Activity, GuildId, Message, Ready},
+        user::OnlineStatus,
+    },
     prelude::{Context, EventHandler},
 };
 use sqlx::MySqlPool;
@@ -30,18 +33,11 @@ impl EventHandler for Events {
         react(&ctx, &msg).await;
     }
     async fn ready(&self, ctx: Context, _ready: Ready) {
-        let guild = GuildId(985827699853492274);
+        let activity = Activity::listening("YOU :3!");
+        let status = OnlineStatus::Online;
+        ctx.set_presence(Some(activity), status).await;
 
-        guild
-            .set_application_commands(&ctx.http, setup_commands)
-            .await
-            .map(|commands| {
-                commands
-                    .into_iter()
-                    .map(|command| command.name)
-                    .for_each(|name| info!("Created command: {name}"));
-            })
-            .unwrap_or_else(|err| error!("Cannot create application commands: {err}"));
+        create_commands(&ctx).await;
     }
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         // If the interaction is a command, handle it
@@ -49,6 +45,20 @@ impl EventHandler for Events {
             handle_commands(ctx, command).await;
         }
     }
+}
+
+async fn create_commands(ctx: &Context) {
+    let guild = GuildId(985827699853492274);
+    guild
+        .set_application_commands(&ctx.http, setup_commands)
+        .await
+        .map(|commands| {
+            commands
+                .into_iter()
+                .map(|command| command.name)
+                .for_each(|name| info!("Created command: {name}"));
+        })
+        .unwrap_or_else(|err| error!("Cannot create application commands: {err}"));
 }
 
 /// Registers all the commands used
