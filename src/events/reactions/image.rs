@@ -20,8 +20,11 @@ pub async fn image(ctx: &Context, msg: &Message, image: Image) -> CatResult<()> 
 const HAPPY_CAT: &str = "./images/transcat-happy.png";
 const SLEEPY_CAT: &str = "./images/transcat-slepy.png";
 
+/// Random image to be sent
 pub enum Image {
+    /// Heather is happy
     Happy,
+    /// Heather is eepy
     Sleepy,
 }
 impl Distribution<Image> for Standard {

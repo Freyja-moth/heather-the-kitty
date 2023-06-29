@@ -14,10 +14,13 @@ use super::{
 };
 
 #[async_trait]
+/// Lets you turn the attached value into a response
 pub trait Response {
+    /// Creates a message response from self
     async fn create_response(self, ctx: &Context, command: ApplicationCommandInteraction);
 }
 
+// Allow results to be turned into responses
 #[async_trait]
 impl<T, E> Response for Result<T, E>
 where

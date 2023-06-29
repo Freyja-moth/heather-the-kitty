@@ -1,27 +1,15 @@
 use log::{error, info};
-use rand::{distributions::Standard, prelude::Distribution, random};
+use rand::random;
 use serenity::{
     builder::CreateApplicationCommand,
     model::prelude::interaction::application_command::ApplicationCommandInteraction,
     prelude::Context,
 };
 
-enum Reaction {
-    Happy,
-    Ignore,
-    Anger,
-}
-impl Distribution<Reaction> for Standard {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> Reaction {
-        match rng.gen_range(0..=64) {
-            0..=3 => Reaction::Anger,
-            4..=6 => Reaction::Ignore,
-            _ => Reaction::Happy,
-        }
-    }
-}
-impl ToString for Reaction {
-    fn to_string(&self) -> String {
+use super::Reaction;
+
+impl Reaction {
+    fn into_pet_string(&self) -> String {
         match random() {
             Reaction::Anger => "Heather didn't want pets, so she tries to bite you!",
             Reaction::Ignore => "Heather didn't want pets, so she walks away",
@@ -34,7 +22,9 @@ impl ToString for Reaction {
 pub async fn run(command: ApplicationCommandInteraction, ctx: &Context) {
     if command
         .create_interaction_response(&ctx.http, |response| {
-            response.interaction_response_data(|content| content.content(random::<Reaction>()))
+            response.interaction_response_data(|content| {
+                content.content(random::<Reaction>().into_pet_string())
+            })
         })
         .await
         .is_err()

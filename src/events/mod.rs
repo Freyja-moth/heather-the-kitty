@@ -16,6 +16,7 @@ use crate::Database;
 
 use self::{commands::handle_commands, reactions::react};
 
+/// Retrieves the database from context
 async fn get_database(ctx: &Context) -> Arc<MySqlPool> {
     let reader = ctx.data.read().await;
     reader.get::<Database>().unwrap().clone()
@@ -43,12 +44,14 @@ impl EventHandler for Events {
             .unwrap_or_else(|err| error!("Cannot create application commands: {err}"));
     }
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        // If the interaction is a command, handle it
         if let Interaction::ApplicationCommand(command) = interaction {
             handle_commands(ctx, command).await;
         }
     }
 }
 
+/// Registers all the commands used
 fn setup_commands(commands: &mut CreateApplicationCommands) -> &mut CreateApplicationCommands {
     commands
         .create_application_command(commands::ignore::register)

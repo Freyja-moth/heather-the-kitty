@@ -23,7 +23,7 @@ async fn main() -> CatResult<()> {
     let intents = GatewayIntents::all();
     let token = env!("TOKEN");
 
-    let mut client = Client::builder(&token, intents)
+    let mut client = Client::builder(token, intents)
         .event_handler(Events)
         .await?;
 

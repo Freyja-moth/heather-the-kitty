@@ -12,9 +12,13 @@ pub async fn sound(ctx: &Context, msg: &Message, sound: Sound) -> CatResult<()> 
     Ok(())
 }
 
+/// Random sound to be made
 pub enum Sound {
+    /// Heather meows
     Meoww,
+    /// Heather mrupps
     Mrupp,
+    /// Heather nyahhs
     Nyahhh,
 }
 impl Distribution<Sound> for Standard {

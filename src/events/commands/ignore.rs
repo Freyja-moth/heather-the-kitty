@@ -66,13 +66,17 @@ async fn add_to_db(ctx: &Context, channel: &PartialChannel) -> IgnoreResult<()> 
 }
 
 pub async fn run(command: ApplicationCommandInteraction, ctx: &Context) {
-    let response: IgnoreResult<AddedChannel> = async {
+    async {
         let channel = command
             .data
             .options
+            // There should only be one value here, so we can ignore the others
             .first()
             .ok_or(IgnoreError::CannotFindChannel)
             .and_then(|data| {
+                // Checks that
+                // 1. There is a CommandDataOptionValue
+                // 2. That the value in it is actually a channel
                 if let Some(CommandDataOptionValue::Channel(channel)) = data.resolved.clone() {
                     Ok(channel)
                 } else {
@@ -82,11 +86,13 @@ pub async fn run(command: ApplicationCommandInteraction, ctx: &Context) {
 
         add_to_db(ctx, &channel).await?;
 
-        Ok(AddedChannel(channel))
+        Ok::<AddedChannel, IgnoreError>(AddedChannel(channel))
     }
+    .await
+    // Pass the result of the above closure? (I think it might be called something else) and create
+    // a response using it
+    .create_response(ctx, command)
     .await;
-
-    response.create_response(ctx, command).await;
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {

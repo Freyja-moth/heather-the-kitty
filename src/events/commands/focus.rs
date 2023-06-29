@@ -68,13 +68,17 @@ async fn add_to_db(ctx: &Context, channel: &PartialChannel) -> FocusResult<()> {
 }
 
 pub async fn run(command: ApplicationCommandInteraction, ctx: &Context) {
-    let response: FocusResult<RemovedChannel> = async {
+    async {
         let channel = command
             .data
             .options
             .first()
+            // There should only be one value here, so we can ignore the others
             .ok_or(FocusError::CannotFindChannel)
             .and_then(|data| {
+                // Checks that
+                // 1. There is a CommandDataOptionValue
+                // 2. That the value in it is actually a channel
                 if let Some(CommandDataOptionValue::Channel(channel)) = data.resolved.clone() {
                     Ok(channel)
                 } else {
@@ -84,11 +88,13 @@ pub async fn run(command: ApplicationCommandInteraction, ctx: &Context) {
 
         add_to_db(ctx, &channel).await?;
 
-        Ok(RemovedChannel(channel))
+        Ok::<RemovedChannel, FocusError>(RemovedChannel(channel))
     }
+    .await
+    // Pass the result of the above closure? (I think it might be called something else) and create
+    // a response using it
+    .create_response(ctx, command)
     .await;
-
-    response.create_response(ctx, command).await;
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {

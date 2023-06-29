@@ -16,7 +16,7 @@ pub async fn react(ctx: &Context, msg: &Message) {
     let pool = get_database(ctx).await;
     let channel_id = msg.channel_id.to_string();
 
-    let ignore_channel = sqlx::query!(
+    let is_ignored_channel = sqlx::query!(
         "SELECT channel_id FROM ignore_channels WHERE channel_id = ?",
         channel_id
     )
@@ -25,11 +25,12 @@ pub async fn react(ctx: &Context, msg: &Message) {
     .is_ok();
     let is_bot = msg.author.bot;
 
-    if ignore_channel || is_bot {
+    if is_ignored_channel || is_bot {
         info!("I was going to say something, but they seemed busy");
         return;
     }
 
+    // Gets a random reaction and; if it's not none, passes it into the function
     if let Err(why) = match random() {
         Reaction::Sound(sound_made) => sound(ctx, msg, sound_made).await,
         Reaction::Image(image_sent) => image(ctx, msg, image_sent).await,
