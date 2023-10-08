@@ -1,56 +1,32 @@
-mod image;
-mod sound;
+pub mod image;
+pub mod sound;
 
-use log::{error, info};
-use rand::{distributions::Standard, prelude::Distribution, random};
-use serenity::{model::prelude::Message, prelude::Context};
+use crate::prelude::*;
 
-use self::{
-    image::{image, Image},
-    sound::{sound, Sound},
-};
-
-use super::get_database;
-
-pub async fn react(ctx: &Context, msg: &Message) {
-    let pool = get_database(ctx).await;
-    let channel_id = msg.channel_id.to_string();
-
-    let is_ignored_channel = sqlx::query!(
-        "SELECT channel_id FROM ignore_channels WHERE channel_id = ?",
-        channel_id
-    )
-    .fetch_one(&*pool)
-    .await
-    .is_ok();
-    let is_bot = msg.author.bot;
-
-    if is_ignored_channel || is_bot {
-        info!("I was going to say something, but they seemed busy");
-        return;
-    }
-
-    // Gets a random reaction and; if it's not none, passes it into the function
-    if let Err(why) = match random() {
-        Reaction::Sound(sound_made) => sound(ctx, msg, sound_made).await,
-        Reaction::Image(image_sent) => image(ctx, msg, image_sent).await,
-        Reaction::None => Ok(()),
-    } {
-        error!("I tried to do something, but it didn't work. {why}");
-    }
+#[async_trait]
+pub trait Respond {
+    async fn respond(self, message: &Message, http: &Http) -> KittyResult;
 }
 
-enum Reaction {
+pub enum ReactionType {
     Sound(Sound),
     Image(Image),
-    None,
+    Nothing,
 }
-impl Distribution<Reaction> for Standard {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> Reaction {
-        match rng.gen_range(0..=128) {
-            1..=10 => Reaction::Sound(random::<Sound>()),
-            11..=14 => Reaction::Image(random::<Image>()),
-            _ => Reaction::None,
+impl Distribution<ReactionType> for Standard {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> ReactionType {
+        match rng.gen_range(1..=255) {
+            1..=25 => ReactionType::Image(random()),
+            26..=50 => ReactionType::Sound(random()),
+            _ => ReactionType::Nothing,
         }
+    }
+}
+
+pub async fn generate_response(ctx: &Context, message: &Message) -> KittyResult {
+    match random() {
+        ReactionType::Nothing => Ok(()),
+        ReactionType::Sound(sound) => sound.respond(message, &ctx.http).await,
+        ReactionType::Image(image) => image.respond(message, &ctx.http).await,
     }
 }
