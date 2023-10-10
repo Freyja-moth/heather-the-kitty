@@ -23,8 +23,27 @@ impl Distribution<ReactionType> for Standard {
     }
 }
 
+async fn check_channel(channel_id: &ChannelId, database: &MySqlPool) -> KittyResult<ReactionType> {
+    sqlx::query(IS_IGNORED)
+        .bind(channel_id.to_string())
+        .fetch_one(database)
+        .await
+        .map(|_| ReactionType::Nothing)
+        .or_else(|err| {
+            if let sqlx::Error::RowNotFound = err {
+                Ok(random())
+            } else {
+                Err(DatabaseError::UnableToCheckIfChannelIsIgnored(err).into())
+            }
+        })
+}
+
 pub async fn generate_response(ctx: &Context, message: &Message) -> KittyResult {
-    match random() {
+    let database = Database::retrieve_database(ctx)
+        .await
+        .ok_or(DatabaseError::CannotRetrieveDatabase)?;
+
+    match check_channel(&message.channel_id, database.inner()).await? {
         ReactionType::Nothing => Ok(()),
         ReactionType::Sound(sound) => sound.respond(message, &ctx.http).await,
         ReactionType::Image(image) => image.respond(message, &ctx.http).await,

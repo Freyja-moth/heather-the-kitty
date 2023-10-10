@@ -32,15 +32,18 @@ async fn try_run(options: &[CommandDataOption], database: &MySqlPool) -> KittyRe
             }
         })?;
 
-    match sqlx::query(IS_IGNORED)
+    sqlx::query(IS_IGNORED)
         .bind(channel.id.0.to_string())
         .fetch_one(database)
         .await
-    {
-        Ok(_) => Ok(true),
-        Err(sqlx::Error::RowNotFound) => Ok(false),
-        Err(err) => Err(DatabaseError::UnableToCheckIfChannelIsIgnored(err).into()),
-    }
+        .map(|_| true)
+        .or_else(|err| {
+            if let sqlx::Error::RowNotFound = err {
+                Ok(false)
+            } else {
+                Err(DatabaseError::UnableToCheckIfChannelIsIgnored(err).into())
+            }
+        })
 }
 
 pub async fn run(

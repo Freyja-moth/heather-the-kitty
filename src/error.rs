@@ -122,6 +122,8 @@ pub enum CommandError {
 
 #[derive(Error, Debug)]
 pub enum AffectionError {
+    #[error("Channel is been ignored")]
+    ChannelIsIgnored,
     #[error("Could not generate hug response")]
     CouldNotGenerateHugResponse,
     #[error("Could not respond to hug")]
