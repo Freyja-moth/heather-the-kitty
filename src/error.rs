@@ -32,9 +32,10 @@ impl KittyError {
                             embed
                                 .title("Error")
                                 .description(format!("{self}"))
+                                .field("", "If the issue persists, please raise an issue here: https://github.com/Andrea-moth/heather-the-kitty/issues", true)
                                 .color(Colour::RED)
-                                .footer(|footer| {
-                                    footer.text("If the issue persists, contact freyja-moth")
+                                .author(|author| {
+                                    author.name("Freyja-moth").icon_url("https://avatars.githubusercontent.com/u/103472619?v=4")
                                 })
                         })
                     })

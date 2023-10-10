@@ -14,7 +14,10 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         })
 }
 
-async fn try_run(options: &[CommandDataOption], database: &MySqlPool) -> KittyResult {
+async fn try_run<'a>(
+    options: &'a [CommandDataOption],
+    database: &MySqlPool,
+) -> KittyResult<&'a PartialChannel> {
     let channel = options
         .get(0)
         .ok_or(CommandError::CannotFindCommandOption)
@@ -32,9 +35,8 @@ async fn try_run(options: &[CommandDataOption], database: &MySqlPool) -> KittyRe
             }
         })?;
 
-    let channel_display = channel.id.0;
     if sqlx::query(REMOVE_CHANNEL)
-        .bind(channel_display)
+        .bind(channel.id.to_string())
         .execute(database)
         .await
         .map_err(DatabaseError::UnableToInsertChannelToTable)?
@@ -45,9 +47,9 @@ async fn try_run(options: &[CommandDataOption], database: &MySqlPool) -> KittyRe
     } else {
         info!(
             "Removed channel with id: {} from ignore list",
-            channel_display
+            channel.id.to_string()
         );
-        Ok(())
+        Ok(channel)
     }
 }
 
@@ -58,18 +60,19 @@ pub async fn run(
 ) -> KittyResult {
     let options = &interaction.data.options;
 
-    if let Err(err) = try_run(options, database).await {
-        err.send_error_response(http, interaction).await?;
-    } else {
-        succeded_response(
-            interaction,
-            http,
-            format!(
-                "I've removed the channel {} from the ignore list!",
-                interaction.channel_id.mention()
-            ),
-        )
-        .await?;
+    match try_run(options, database).await {
+        Ok(channel) => {
+            succeded_response(
+                interaction,
+                http,
+                format!(
+                    "I've removed the channel {} from the ignore list!",
+                    channel.id.mention()
+                ),
+            )
+            .await?
+        }
+        Err(err) => err.send_error_response(http, interaction).await?,
     }
 
     Ok(())

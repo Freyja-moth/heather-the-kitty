@@ -12,11 +12,11 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         )
 }
 
-async fn try_run(
-    options: &[CommandDataOption],
+async fn try_run<'a>(
+    options: &'a [CommandDataOption],
     guild_id: GuildId,
     database: &MySqlPool,
-) -> KittyResult {
+) -> KittyResult<&'a PartialChannel> {
     let channel = options
         .get(0)
         .ok_or(CommandError::CannotFindCommandOption)
@@ -34,9 +34,8 @@ async fn try_run(
             }
         })?;
 
-    let channel_display = channel.id.0;
     if sqlx::query(INSERT_CHANNEL)
-        .bind(channel_display)
+        .bind(channel.id.to_string())
         .bind(guild_id.0.to_string())
         .execute(database)
         .await
@@ -46,8 +45,11 @@ async fn try_run(
     {
         Err(CommandError::ChannelIsAlreadyIgnored.into())
     } else {
-        info!("Added channel with id: {} to ignore list", channel_display);
-        Ok(())
+        info!(
+            "Added channel with id: {} to ignore list",
+            channel.id.to_string()
+        );
+        Ok(channel)
     }
 }
 
@@ -61,19 +63,16 @@ pub async fn run(
         .ok_or(CommandError::CommandRanOutsideOfGuild)?;
     let options = &interaction.data.options;
 
-    if let Err(err) = try_run(options, guild_id, database).await {
-        err.send_error_response(http, interaction).await?;
-    } else {
-        succeded_response(
-            interaction,
-            http,
-            format!(
-                "I've added channel {} to ignore list",
-                interaction.channel_id.mention()
-            ),
-        )
-        .await?;
+    match try_run(options, guild_id, database).await {
+        Ok(channel) => {
+            succeded_response(
+                interaction,
+                http,
+                format!("I've added channel {} to ignore list", channel.id.mention()),
+            )
+            .await?
+        }
+        Err(err) => err.send_error_response(http, interaction).await?,
     }
-
     Ok(())
 }
